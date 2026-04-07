@@ -1,0 +1,12 @@
+{
+  "name": "ww-lead-formular",
+  "version": "1.0.0",
+  "description": "Walking Weddings Lead Formular - HochzeitStil Messe",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "nodemailer": "^6.9.0"
+  }
+}
