@@ -491,20 +491,6 @@
     letter-spacing: 3px;
   }
 
-  .lead-count {
-    position: fixed;
-    top: 10px;
-    right: 16px;
-    background: var(--charcoal);
-    color: var(--white);
-    padding: 5px 14px;
-    font-family: 'PT Sans', sans-serif;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    z-index: 100;
-  }
 
   .export-btn {
     display: inline-block;
@@ -531,7 +517,6 @@
 </head>
 <body>
 
-<div class="lead-count" id="leadCount" style="display:none;">0 Leads</div>
 
 <!-- ════════════════════════════════════════════ -->
 <!-- SCREEN 1: LEAD FORM (visible to couple)     -->
@@ -746,16 +731,7 @@
     updateCount();
   }
 
-  function updateCount() {
-    const leads = getLeads();
-    const el = document.getElementById('leadCount');
-    if (leads.length > 0) {
-      el.style.display = 'block';
-      el.textContent = leads.length + ' Lead' + (leads.length !== 1 ? 's' : '');
-    } else {
-      el.style.display = 'none';
-    }
-  }
+  function updateCount() {}
 
   // ──────────────────────────────────────────────
   // DATE FIELDS
@@ -988,6 +964,13 @@
     const leads = getLeads();
     leads.push(currentLead);
     saveLeads(leads);
+
+    // Sync rating to server
+    fetch('/api/update-lead', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: currentLead.name, email: currentLead.email, rating: currentLead.rating, notes: currentLead.notes })
+    }).catch(function() {});
 
     document.getElementById('successName').textContent = currentLead.name || currentLead.phone;
     showScreen('screen-success');
