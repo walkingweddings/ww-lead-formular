@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Euer Fahrplan für die Hochzeit 2027 — Walking Weddings</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Montserrat:wght@300;400;500;600&display=swap');
+
+  :root {
+    --cream: #FAF7F2;
+    --warm-white: #FFFDF9;
+    --gold: #C9A96E;
+    --gold-light: #E8D5B0;
+    --gold-dark: #A8864A;
+    --charcoal: #2C2C2C;
+    --text: #3D3D3D;
+    --text-light: #6B6B6B;
+    --sage: #9CAF91;
+    --blush: #E8D5CB;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Montserrat', sans-serif;
+    background: var(--cream);
+    color: var(--text);
+    line-height: 1.8;
+    font-weight: 300;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Hero Section */
+  .hero {
+    background: linear-gradient(165deg, var(--charcoal) 0%, #1a1a1a 100%);
+    color: white;
+    text-align: center;
+    padding: 80px 30px 70px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: radial-gradient(ellipse at 50% 0%, rgba(201,169,110,0.15) 0%, transparent 70%);
+  }
+
+  .hero-content {
+    position: relative;
+    z-index: 1;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  .hero-logo {
+    width: 200px;
+    margin-bottom: 40px;
+  }
+
+  .hero-badge {
+    display: inline-block;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--gold);
+    border: 1px solid var(--gold);
+    padding: 8px 24px;
+    margin-bottom: 40px;
+  }
+
+  /* Photo Sections */
+  .photo-break {
+    width: 100%;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .photo-break img {
+    width: 100%;
+    height: 500px;
+    object-fit: cover;
+    object-position: center 30%;
+    display: block;
+  }
+
+  /* Hero photo Ken Burns animation */
+  .photo-break.hero-photo {
+    height: 500px;
+  }
+
+  .photo-break.hero-photo img {
+    animation: kenburns 20s ease-in-out infinite alternate;
+    transform-origin: center center;
+  }
+
+  @keyframes kenburns {
+    0% {
+      transform: scale(1);
+      object-position: center 40%;
+    }
+    100% {
+      transform: scale(1.08);
+      object-position: center 25%;
+    }
+  }
+
+  /* Carousel */
+  .carousel {
+    position: relative;
+    max-width: 700px;
+    margin: 40px auto;
+    padding: 0 30px;
+    overflow: hidden;
+  }
+
+  .carousel-track {
+    display: flex;
+    transition: transform 0.6s cubic-bezier(0.25, 0.1, 0.25, 1);
+  }
+
+  .carousel-slide {
+    min-width: 100%;
+    position: relative;
+  }
+
+  .carousel-slide img {
+    width: 100%;
+    height: 650px;
+    object-fit: contain;
+    display: block;
+  }
+
+  .carousel-caption {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 10px;
+    font-weight: 400;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: white;
+    background: rgba(0,0,0,0.45);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    padding: 8px 16px;
+  }
+
+  .carousel-nav {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 20px;
+  }
+
+  .carousel-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    border: 1.5px solid var(--gold);
+    background: transparent;
+    cursor: pointer;
+    padding: 0;
+    transition: background 0.3s;
+  }
+
+  .carousel-dot.active {
+    background: var(--gold);
+  }
+
+  .carousel-arrows {
+    position: absolute;
+    top: 0;
+    left: 30px;
+    right: 30px;
+    height: 650px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  .carousel-arrow {
+    pointer-events: auto;
+    background: rgba(0,0,0,0.35);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    border: none;
+    color: white;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    font-size: 18px;
+    cursor: pointer;
+    transition: background 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .carousel-arrow:hover {
+    background: rgba(0,0,0,0.6);
+  }
+
+  /* Foto vs Video Comparison */
+  .comparison {
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 0 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .comparison-item {
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+    padding-bottom: 56.25%; /* 16:9 */
+  }
+
+  .comparison-item img {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .comparison-item iframe {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+  }
+
+  .comparison-label {
+    position: absolute;
+    bottom: 16px;
+    left: 16px;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: white;
+    background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    padding: 6px 14px;
+    z-index: 2;
+  }
+
+  /* CTA Button */
+  .cta-button {
+    display: inline-block;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--gold);
+    text-decoration: none;
+    padding: 16px 44px;
+    border: 1.5px solid var(--gold);
+    transition: all 0.3s ease;
+    margin-top: 15px;
+  }
+
+  .cta-button:hover {
+    background: var(--gold);
+    color: var(--charcoal);
+  }
+
+  .footer-logo-img {
+    width: 140px;
+    margin-bottom: 12px;
+  }
+
+  .hero h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(36px, 7vw, 56px);
+    font-weight: 300;
+    line-height: 1.2;
+    margin-bottom: 12px;
+    letter-spacing: -0.5px;
+  }
+
+  .hero h1 em {
+    font-style: italic;
+    color: var(--gold);
+  }
+
+  .hero-sub {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 13px;
+    font-weight: 300;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.5);
+    margin-top: 20px;
+  }
+
+  .gold-line {
+    width: 50px;
+    height: 1px;
+    background: var(--gold);
+    margin: 30px auto;
+  }
+
+  /* Intro */
+  .intro {
+    max-width: 620px;
+    margin: 0 auto;
+    text-align: center;
+    padding: 70px 30px 50px;
+  }
+
+  .intro p {
+    font-size: 16px;
+    color: var(--text-light);
+    line-height: 2;
+  }
+
+  .intro .highlight {
+    color: var(--gold-dark);
+    font-weight: 400;
+  }
+
+  /* Tips Section */
+  .tips {
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 20px 30px 60px;
+  }
+
+  .tip {
+    display: flex;
+    gap: 28px;
+    margin-bottom: 50px;
+    align-items: flex-start;
+  }
+
+  .tip-number {
+    flex-shrink: 0;
+    width: 56px;
+    height: 56px;
+    border: 1.5px solid var(--gold);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--gold-dark);
+    margin-top: 2px;
+  }
+
+  .tip-content h3 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 24px;
+    font-weight: 500;
+    color: var(--charcoal);
+    margin-bottom: 8px;
+    letter-spacing: -0.3px;
+  }
+
+  .tip-content p {
+    font-size: 14.5px;
+    color: var(--text-light);
+    line-height: 1.9;
+  }
+
+  /* Divider */
+  .section-divider {
+    text-align: center;
+    padding: 20px 0 40px;
+  }
+
+  .section-divider span {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    background: var(--gold-light);
+    border-radius: 50%;
+    margin: 0 8px;
+  }
+
+  /* CTA Section */
+  .cta {
+    background: linear-gradient(165deg, var(--charcoal) 0%, #1a1a1a 100%);
+    color: white;
+    text-align: center;
+    padding: 70px 30px;
+    position: relative;
+  }
+
+  .cta::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: radial-gradient(ellipse at 50% 100%, rgba(201,169,110,0.1) 0%, transparent 70%);
+  }
+
+  .cta-content {
+    position: relative;
+    z-index: 1;
+    max-width: 500px;
+    margin: 0 auto;
+  }
+
+  .cta h2 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(28px, 5vw, 38px);
+    font-weight: 300;
+    line-height: 1.3;
+    margin-bottom: 16px;
+  }
+
+  .cta h2 em {
+    font-style: italic;
+    color: var(--gold);
+  }
+
+  .cta p {
+    font-size: 14.5px;
+    color: rgba(255,255,255,0.6);
+    margin-bottom: 35px;
+    line-height: 1.8;
+  }
+
+  .cta-phone {
+    display: inline-block;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 28px;
+    font-weight: 400;
+    color: var(--gold);
+    text-decoration: none;
+    letter-spacing: 2px;
+    padding: 14px 40px;
+    border: 1.5px solid var(--gold);
+    transition: all 0.3s ease;
+  }
+
+  .cta-phone:hover {
+    background: var(--gold);
+    color: var(--charcoal);
+  }
+
+  .cta-label {
+    display: block;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.35);
+    margin-top: 20px;
+  }
+
+  /* Footer */
+  .footer {
+    text-align: center;
+    padding: 40px 30px;
+    background: var(--cream);
+  }
+
+  .footer-logo {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 20px;
+    font-weight: 500;
+    color: var(--charcoal);
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+  }
+
+  .footer a {
+    font-size: 12px;
+    color: var(--text-light);
+    text-decoration: none;
+    letter-spacing: 1px;
+  }
+
+  .footer a:hover {
+    color: var(--gold-dark);
+  }
+
+  /* Responsive */
+  @media (max-width: 600px) {
+    .hero { padding: 60px 24px 55px; }
+    .intro { padding: 50px 24px 40px; }
+    .tips { padding: 10px 24px 40px; }
+    .tip { gap: 18px; }
+    .tip-number { width: 44px; height: 44px; font-size: 18px; }
+    .tip-content h3 { font-size: 20px; }
+    .cta { padding: 55px 24px; }
+    .photo-break img { height: 300px; }
+    .carousel { padding: 0 16px; }
+    .carousel-slide img { height: 480px; }
+    .carousel-arrows { left: 16px; right: 16px; height: 480px; }
+    .carousel-arrow { width: 36px; height: 36px; font-size: 14px; }
+    .hero-logo { width: 160px; }
+    .comparison { padding: 0 24px; gap: 16px; }
+  }
+</style>
+</head>
+<body>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-content">
+      <img class="hero-logo" src="assets/ww_logoWhite_wtagline (1).svg" alt="Walking Weddings">
+      <h1>Euer Fahrplan für die<br>Hochzeit <em>2027</em></h1>
+      <div class="gold-line"></div>
+      <p class="hero-sub">Tipps von euren Experten für Foto &amp; Video</p>
+    </div>
+  </section>
+
+  <!-- Intro -->
+  <section class="intro">
+    <p>
+      Herzlichen Glückwunsch! Ihr habt euch entschieden, 2027 <span class="highlight">„Ja"</span> zu sagen.
+      Das klingt noch weit weg, doch die schönsten Geschichten beginnen mit einer
+      entspannten Planung. Hier sind unsere fünf Profi-Tipps, damit eure
+      Hochzeitsbilder und euer Film so einzigartig werden wie ihr.
+    </p>
+  </section>
+
+  <!-- Tips -->
+  <section class="tips">
+
+    <div class="tip">
+      <div class="tip-number">1</div>
+      <div class="tip-content">
+        <h3>Das Fundament: Timing ist alles</h3>
+        <p>Die beliebtesten Locations und Dienstleister werden oft 18–24 Monate im Voraus angefragt. Indem ihr euch 2027er Termine bereits jetzt sichert, habt ihr die freie Auswahl — und müsst keine Kompromisse bei eurem Stil machen.</p>
+      </div>
+    </div>
+
+    <div class="tip">
+      <div class="tip-number">2</div>
+      <div class="tip-content">
+        <h3>Stil-Check: Foto vs. Video</h3>
+        <p>Ein Foto hält den Moment fest, ein Film die Emotion und den Ton. Überlegt euch frühzeitig, ob ihr eine reine Reportage möchtet oder einen „Cinematic Short Film", der eure Hochzeit wie ein Hollywood-Epos erzählt. Beides sollte harmonisch aufeinander abgestimmt sein.</p>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- Foto vs. Video Vergleich -->
+  <div class="comparison">
+    <div class="comparison-item">
+      <img src="assets/foto-stil.jpg" alt="Fotografie — Jennise & Florian">
+      <span class="comparison-label">Foto</span>
+    </div>
+    <div class="comparison-item">
+      <iframe src="https://walkingweddings.pic-time.com/-jenniseflorianswedding/featuredvideo/455308?videoview=AAAAABgBAAAZHGvzYz7WeEig6asSI7-NUuZ7uUrzSV72_uBAvNc,&transparentbg=true" allowfullscreen="true" allowtransparency="true"></iframe>
+      <span class="comparison-label">Video</span>
+    </div>
+  </div>
+
+  <section class="tips" style="padding-top: 50px; padding-bottom: 20px;">
+
+    <div class="tip">
+      <div class="tip-number">3</div>
+      <div class="tip-content">
+        <h3>Die Chemie muss stimmen</h3>
+        <p>Euer Fotograf und Videograf ist der Dienstleister, der euch am Hochzeitstag am nächsten ist. Achtet bei der Auswahl nicht nur auf das Portfolio, sondern auch auf euer Bauchgefühl beim ersten Kennenlernen. Nur wenn ihr euch wohlfühlt, entstehen authentische, ungestellte Aufnahmen.</p>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- S/W Zeremonie — nach Tipp 3 -->
+  <div class="photo-break">
+    <img src="assets/bw-zeremonie.jpg" alt="Zeremonie — Authentische Momente">
+  </div>
+
+  <section class="tips" style="padding-top: 50px;">
+
+    <div class="tip">
+      <div class="tip-number">4</div>
+      <div class="tip-content">
+        <h3>Budget-Sicherheit durch Frühbuchung</h3>
+        <p>Die Preise in der Hochzeitsbranche passen sich jährlich an. Ein großer Vorteil für 2027er Paare: Wer jetzt bucht, sichert sich oft die aktuellen Konditionen und schützt sich vor Preissteigerungen in den kommenden Jahren.</p>
+      </div>
+    </div>
+
+    <div class="tip">
+      <div class="tip-number">5</div>
+      <div class="tip-content">
+        <h3>Nutzt das goldene Licht</h3>
+        <p>Plant für eure Paarfotos unbedingt die „Golden Hour" ein — kurz vor Sonnenuntergang. Das weiche Licht sorgt für magische Aufnahmen, die man mit keinem Blitz der Welt nachstellen kann. Wir beraten euch gerne bei der zeitlichen Planung!</p>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- Bilder Carousel -->
+  <div class="carousel" id="carousel">
+    <div class="carousel-track" id="carouselTrack">
+      <div class="carousel-slide">
+        <img src="assets/golden-hour.jpg" alt="Golden Hour — Paarfoto am Strand">
+        <span class="carousel-caption">Golden Hour</span>
+      </div>
+      <div class="carousel-slide">
+        <img src="assets/indian-wedding.jpg" alt="Destination Wedding">
+        <span class="carousel-caption">Destination Wedding</span>
+      </div>
+      <div class="carousel-slide">
+        <img src="assets/carousel-extra.jpg" alt="Brautpaar im Licht">
+        <span class="carousel-caption">Licht & Liebe</span>
+      </div>
+    </div>
+    <div class="carousel-arrows">
+      <button class="carousel-arrow" onclick="moveCarousel(-1)">&#8249;</button>
+      <button class="carousel-arrow" onclick="moveCarousel(1)">&#8250;</button>
+    </div>
+    <div class="carousel-nav" id="carouselNav"></div>
+  </div>
+
+  <!-- CTA -->
+  <section class="cta">
+    <div class="cta-content">
+      <h2>Sollen wir euren Termin<br><em>unverbindlich</em> checken?</h2>
+      <p>Meldet euch einfach für einen kurzen 10-Minuten-Call.<br>Wir freuen uns darauf, mehr über eure Vision für 2027 zu erfahren!</p>
+      <a href="tel:+4906604822420" class="cta-phone">06604 822 420</a>
+      <span class="cta-label">oder</span>
+      <a href="https://walkingweddings.com/de/kontakt/" class="cta-button" target="_blank">Kontaktformular</a>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <img class="footer-logo-img" src="assets/ww_logoColor_wtagline (1).svg" alt="Walking Weddings">
+    <br>
+    <a href="https://www.walking-weddings.com">www.walking-weddings.com</a>
+  </footer>
+
+  <script>
+    // Carousel
+    let currentSlide = 0;
+    const track = document.getElementById('carouselTrack');
+    const slides = track.querySelectorAll('.carousel-slide');
+    const nav = document.getElementById('carouselNav');
+
+    // Create dots
+    slides.forEach((_, i) => {
+      const dot = document.createElement('button');
+      dot.className = 'carousel-dot' + (i === 0 ? ' active' : '');
+      dot.onclick = () => goToSlide(i);
+      nav.appendChild(dot);
+    });
+
+    function goToSlide(n) {
+      currentSlide = n;
+      track.style.transform = 'translateX(-' + (currentSlide * 100) + '%)';
+      document.querySelectorAll('.carousel-dot').forEach((d, i) => {
+        d.classList.toggle('active', i === currentSlide);
+      });
+    }
+
+    function moveCarousel(dir) {
+      let next = currentSlide + dir;
+      if (next < 0) next = slides.length - 1;
+      if (next >= slides.length) next = 0;
+      goToSlide(next);
+    }
+
+    // Auto-advance every 5s
+    setInterval(() => moveCarousel(1), 5000);
+
+    // Touch/swipe support
+    let touchStartX = 0;
+    const carousel = document.getElementById('carousel');
+    carousel.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; });
+    carousel.addEventListener('touchend', e => {
+      const diff = touchStartX - e.changedTouches[0].clientX;
+      if (Math.abs(diff) > 50) moveCarousel(diff > 0 ? 1 : -1);
+    });
+  </script>
+</body>
+</html>
