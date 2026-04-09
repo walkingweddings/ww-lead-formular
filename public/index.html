@@ -208,6 +208,9 @@
 
   .extra-date { margin-top: 8px; }
   .extra-date.hidden { display: none; }
+  .location-fields.hidden { display: none; }
+  .extra-location { margin-top: 8px; }
+  .extra-location.hidden { display: none; }
 
   /* ── BUTTONS ── */
   .submit-btn {
@@ -491,6 +494,20 @@
     letter-spacing: 3px;
   }
 
+  .lead-count {
+    position: fixed;
+    top: 10px;
+    right: 16px;
+    background: var(--charcoal);
+    color: var(--white);
+    padding: 5px 14px;
+    font-family: 'PT Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    z-index: 100;
+  }
 
   .export-btn {
     display: inline-block;
@@ -517,6 +534,7 @@
 </head>
 <body>
 
+<div class="lead-count" id="leadCount" style="display:none;">0 Leads</div>
 
 <!-- ════════════════════════════════════════════ -->
 <!-- SCREEN 1: LEAD FORM (visible to couple)     -->
@@ -576,6 +594,32 @@
           </div>
 
           <button type="button" class="add-date-btn" id="addDateBtn">+ Weiteres Datum</button>
+        </div>
+      </div>
+
+      <div class="section-title">Location</div>
+
+      <div class="field">
+        <label class="date-toggle">
+          <input type="checkbox" id="noLocationYet">
+          <span>Wir haben noch keine Location</span>
+        </label>
+
+        <div class="location-fields" id="locationFields">
+          <label class="field-label">Wunschlocation</label>
+          <input type="text" id="location1" placeholder="z.B. Schloss Schoenbrunn" autocomplete="off">
+
+          <div class="extra-location hidden" id="extraLocation2">
+            <label class="field-label" style="margin-top: 8px;">Wunschlocation 2</label>
+            <input type="text" id="location2" placeholder="z.B. Palais Coburg" autocomplete="off">
+          </div>
+
+          <div class="extra-location hidden" id="extraLocation3">
+            <label class="field-label" style="margin-top: 8px;">Wunschlocation 3</label>
+            <input type="text" id="location3" placeholder="z.B. Weingut am Reisenberg" autocomplete="off">
+          </div>
+
+          <button type="button" class="add-date-btn" id="addLocationBtn">+ Weitere Location</button>
         </div>
       </div>
 
@@ -731,7 +775,16 @@
     updateCount();
   }
 
-  function updateCount() {}
+  function updateCount() {
+    const leads = getLeads();
+    const el = document.getElementById('leadCount');
+    if (leads.length > 0) {
+      el.style.display = 'block';
+      el.textContent = leads.length + ' Lead' + (leads.length !== 1 ? 's' : '');
+    } else {
+      el.style.display = 'none';
+    }
+  }
 
   // ──────────────────────────────────────────────
   // DATE FIELDS
@@ -753,6 +806,23 @@
       document.getElementById('extraDate' + visibleDates).classList.remove('hidden');
     }
     if (visibleDates >= 3) this.style.display = 'none';
+  });
+
+  // ──────────────────────────────────────────────
+  // LOCATION FIELDS
+  // ──────────────────────────────────────────────
+  let visibleLocations = 1;
+
+  document.getElementById('noLocationYet').addEventListener('change', function() {
+    document.getElementById('locationFields').classList.toggle('hidden', this.checked);
+  });
+
+  document.getElementById('addLocationBtn').addEventListener('click', function() {
+    if (visibleLocations < 3) {
+      visibleLocations++;
+      document.getElementById('extraLocation' + visibleLocations).classList.remove('hidden');
+    }
+    if (visibleLocations >= 3) this.style.display = 'none';
   });
 
   // ──────────────────────────────────────────────
@@ -818,6 +888,18 @@
       if (d3) dates.push(d3);
     }
 
+    // Collect locations
+    const noLocation = document.getElementById('noLocationYet').checked;
+    const locations = [];
+    if (!noLocation) {
+      const l1 = document.getElementById('location1').value.trim();
+      const l2 = document.getElementById('location2').value.trim();
+      const l3 = document.getElementById('location3').value.trim();
+      if (l1) locations.push(l1);
+      if (l2) locations.push(l2);
+      if (l3) locations.push(l3);
+    }
+
     const interestValues = interests.map(cb => cb.value);
     const extras = Array.from(document.querySelectorAll('input[name="extras"]:checked')).map(cb => cb.value);
 
@@ -828,6 +910,8 @@
       email: email,
       noDateYet: noDate,
       weddingDates: dates,
+      noLocationYet: noLocation,
+      locations: locations,
       interests: interestValues,
       hours: document.getElementById('hours').value.trim(),
       extras: extras,
@@ -933,11 +1017,13 @@
 
     if (currentLead) {
       const dateStr = currentLead.noDateYet ? 'Noch kein Datum' : (currentLead.weddingDates.join(', ') || '-');
+      const locStr = currentLead.noLocationYet ? 'Noch keine Location' : (currentLead.locations.join(', ') || '-');
       document.getElementById('leadSummary').innerHTML =
         '<strong>' + currentLead.name + '</strong><br>' +
         '<span>' + currentLead.phone + '</span><br>' +
         '<span>' + currentLead.email + '</span><br>' +
-        '<span>Datum: ' + dateStr + '</span>' +
+        '<span>Datum: ' + dateStr + '</span><br>' +
+        '<span>Location: ' + locStr + '</span>' +
         (currentLead.interests.length ? '<br><span>Interesse: ' + currentLead.interests.join(', ') + '</span>' : '') +
         (currentLead.extras.length ? '<br><span>Extras: ' + currentLead.extras.join(', ') + '</span>' : '') +
         (currentLead.budget ? '<br><span>Budget: ' + currentLead.budget + '</span>' : '') +
@@ -965,13 +1051,6 @@
     leads.push(currentLead);
     saveLeads(leads);
 
-    // Sync rating to server
-    fetch('/api/update-lead', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: currentLead.name, email: currentLead.email, rating: currentLead.rating, notes: currentLead.notes })
-    }).catch(function() {});
-
     document.getElementById('successName').textContent = currentLead.name || currentLead.phone;
     showScreen('screen-success');
 
@@ -991,6 +1070,13 @@
     document.getElementById('extraDate3').classList.add('hidden');
     document.getElementById('addDateBtn').style.display = '';
     visibleDates = 1;
+
+    document.getElementById('noLocationYet').checked = false;
+    document.getElementById('locationFields').classList.remove('hidden');
+    document.getElementById('extraLocation2').classList.add('hidden');
+    document.getElementById('extraLocation3').classList.add('hidden');
+    document.getElementById('addLocationBtn').style.display = '';
+    visibleLocations = 1;
 
     document.getElementById('internalNotes').value = '';
     document.querySelectorAll('#ratingStars button').forEach(b => b.classList.remove('active'));
@@ -1012,7 +1098,7 @@
       return;
     }
 
-    const headers = ['Zeitstempel', 'Name', 'Telefon', 'Email', 'Kein Datum', 'Hochzeitsdaten', 'Interesse', 'Stunden', 'Zusatzprodukte', 'Budget', 'Anmerkungen', 'Bewertung', 'Notizen'];
+    const headers = ['Zeitstempel', 'Name', 'Telefon', 'Email', 'Kein Datum', 'Hochzeitsdaten', 'Keine Location', 'Locations', 'Interesse', 'Stunden', 'Zusatzprodukte', 'Budget', 'Anmerkungen', 'Bewertung', 'Notizen'];
     const rows = leads.map(l => [
       l.timestamp,
       l.name,
@@ -1020,6 +1106,8 @@
       l.email,
       l.noDateYet ? 'Ja' : 'Nein',
       (l.weddingDates || []).join('; '),
+      l.noLocationYet ? 'Ja' : 'Nein',
+      (l.locations || []).join('; '),
       (l.interests || []).join('; '),
       l.hours,
       (l.extras || []).join('; '),

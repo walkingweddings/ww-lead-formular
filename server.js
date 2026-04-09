@@ -80,6 +80,7 @@ function parseBody(req) {
 
 async function sendTeamEmail(lead) {
   const dateStr = lead.noDateYet ? 'Noch kein fixes Datum' : (lead.weddingDates?.join(', ') || 'Nicht angegeben');
+  const locStr = lead.noLocationYet ? 'Noch keine Location' : (lead.locations?.join(', ') || 'Nicht angegeben');
 
   return sendEmail({
     to: 'contact@walkingweddings.com',
@@ -94,6 +95,7 @@ async function sendTeamEmail(lead) {
         <tr><td style="padding:8px;border:1px solid #d4c4a8;font-weight:bold;background:#f5f0e8;">Telefon</td><td style="padding:8px;border:1px solid #d4c4a8;">${esc(lead.phone)}</td></tr>
         <tr><td style="padding:8px;border:1px solid #d4c4a8;font-weight:bold;background:#f5f0e8;">E-Mail</td><td style="padding:8px;border:1px solid #d4c4a8;">${esc(lead.email)}</td></tr>
         <tr><td style="padding:8px;border:1px solid #d4c4a8;font-weight:bold;background:#f5f0e8;">Hochzeitsdatum</td><td style="padding:8px;border:1px solid #d4c4a8;">${esc(dateStr)}</td></tr>
+        <tr><td style="padding:8px;border:1px solid #d4c4a8;font-weight:bold;background:#f5f0e8;">Location</td><td style="padding:8px;border:1px solid #d4c4a8;">${esc(locStr)}</td></tr>
         <tr><td style="padding:8px;border:1px solid #d4c4a8;font-weight:bold;background:#f5f0e8;">Interesse</td><td style="padding:8px;border:1px solid #d4c4a8;">${esc(lead.interests?.join(', ') || '-')}</td></tr>
         <tr><td style="padding:8px;border:1px solid #d4c4a8;font-weight:bold;background:#f5f0e8;">Stunden</td><td style="padding:8px;border:1px solid #d4c4a8;">${esc(lead.hours || '-')}</td></tr>
         <tr><td style="padding:8px;border:1px solid #d4c4a8;font-weight:bold;background:#f5f0e8;">Zusatzprodukte</td><td style="padding:8px;border:1px solid #d4c4a8;">${esc(lead.extras?.join(', ') || '-')}</td></tr>
@@ -105,6 +107,9 @@ async function sendTeamEmail(lead) {
 }
 
 async function sendCoupleEmail(lead) {
+  const dateStr = lead.noDateYet ? 'Noch kein fixes Datum' : (lead.weddingDates?.join(', ') || '-');
+  const locStr = lead.noLocationYet ? 'Noch keine Location' : (lead.locations?.join(', ') || '-');
+
   return sendEmail({
     to: lead.email,
     replyTo: 'contact@walkingweddings.com',
@@ -118,6 +123,20 @@ async function sendCoupleEmail(lead) {
           <p>Liebe/r ${esc(lead.name)},</p>
           <p>vielen Dank fuer euer Interesse an Walking Weddings auf der HochzeitStil Messe!</p>
           <p>Wir freuen uns sehr, dass wir euch kennenlernen durften. Unser Team wird sich in Kuerze bei euch melden, um ein unverbindliches Kennenlerngespraech zu vereinbaren.</p>
+
+          <div style="background:#f5f0e8;border:1px solid #d4c4a8;padding:20px;margin:24px 0;">
+            <p style="font-family:Georgia,serif;font-size:16px;margin:0 0 12px;letter-spacing:2px;text-transform:uppercase;">Eure Angaben</p>
+            <table style="border-collapse:collapse;width:100%;font-size:14px;">
+              <tr><td style="padding:6px 8px;font-weight:bold;vertical-align:top;width:140px;">Datum</td><td style="padding:6px 8px;">${esc(dateStr)}</td></tr>
+              <tr><td style="padding:6px 8px;font-weight:bold;vertical-align:top;">Location</td><td style="padding:6px 8px;">${esc(locStr)}</td></tr>
+              <tr><td style="padding:6px 8px;font-weight:bold;vertical-align:top;">Interesse</td><td style="padding:6px 8px;">${esc(lead.interests?.join(', ') || '-')}</td></tr>
+              ${lead.hours ? `<tr><td style="padding:6px 8px;font-weight:bold;vertical-align:top;">Stunden</td><td style="padding:6px 8px;">${esc(lead.hours)}</td></tr>` : ''}
+              ${lead.extras?.length ? `<tr><td style="padding:6px 8px;font-weight:bold;vertical-align:top;">Zusatzprodukte</td><td style="padding:6px 8px;">${esc(lead.extras.join(', '))}</td></tr>` : ''}
+              ${lead.budget ? `<tr><td style="padding:6px 8px;font-weight:bold;vertical-align:top;">Budget</td><td style="padding:6px 8px;">${esc(lead.budget)}</td></tr>` : ''}
+              ${lead.remarks ? `<tr><td style="padding:6px 8px;font-weight:bold;vertical-align:top;">Anmerkungen</td><td style="padding:6px 8px;">${esc(lead.remarks)}</td></tr>` : ''}
+            </table>
+          </div>
+
           <p>In der Zwischenzeit haben wir etwas Besonderes fuer euch vorbereitet — unseren <strong>Hochzeitsguide</strong> mit Tipps, Inspiration und allem, was ihr fuer eure Planung braucht:</p>
           <p style="text-align:center;margin:24px 0;">
             <a href="https://ww-lead-formular-production.up.railway.app/hochzeitsguide.html" style="display:inline-block;padding:14px 32px;background:#d4c4a8;color:#393e3f;text-decoration:none;letter-spacing:2px;font-size:14px;text-transform:uppercase;font-weight:bold;">Euer Hochzeitsguide</a>
@@ -148,6 +167,7 @@ function renderDashboard() {
   const stars = n => '★'.repeat(n) + '☆'.repeat(5 - n);
   const rows = leads.slice().reverse().map((l, i) => {
     const dateStr = l.noDateYet ? 'Kein Datum' : (l.weddingDates?.join(', ') || '-');
+    const locStr = l.noLocationYet ? 'Keine Location' : (l.locations?.join(', ') || '-');
     const emailStatus = l.emailSent ? '&#10003;' : '&#10007;';
     return `
       <tr>
@@ -155,6 +175,7 @@ function renderDashboard() {
         <td>${esc(l.phone)}</td>
         <td>${esc(l.email)}</td>
         <td>${esc(dateStr)}</td>
+        <td>${esc(locStr)}</td>
         <td>${esc(l.interests?.join(', ') || '-')}</td>
         <td>${esc(l.hours || '-')}</td>
         <td>${esc(l.extras?.join(', ') || '-')}</td>
@@ -222,7 +243,7 @@ function renderDashboard() {
     <table>
       <thead>
         <tr>
-          <th>Name</th><th>Telefon</th><th>E-Mail</th><th>Datum</th><th>Interesse</th>
+          <th>Name</th><th>Telefon</th><th>E-Mail</th><th>Datum</th><th>Location</th><th>Interesse</th>
           <th>Stunden</th><th>Extras</th><th>Budget</th><th>Anmerkungen</th>
           <th>Bewertung</th><th>Notizen</th><th>Mail</th><th>Zeitpunkt</th>
         </tr>
@@ -235,11 +256,12 @@ function renderDashboard() {
 }
 
 function generateCSV() {
-  const header = 'Name,Telefon,Email,Hochzeitsdatum,Interesse,Stunden,Extras,Budget,Anmerkungen,Bewertung,Notizen,Email gesendet,Zeitpunkt\n';
+  const header = 'Name,Telefon,Email,Hochzeitsdatum,Location,Interesse,Stunden,Extras,Budget,Anmerkungen,Bewertung,Notizen,Email gesendet,Zeitpunkt\n';
   const csvEsc = (v) => '"' + String(v || '').replace(/"/g, '""') + '"';
   const rows = leads.map(l => {
     const dateStr = l.noDateYet ? 'Kein Datum' : (l.weddingDates?.join('; ') || '-');
-    return [l.name, l.phone, l.email, dateStr, l.interests?.join('; '), l.hours, l.extras?.join('; '), l.budget, l.remarks, l.rating, l.notes, l.emailSent ? 'Ja' : 'Nein', l.timestamp || ''].map(csvEsc).join(',');
+    const locStr = l.noLocationYet ? 'Keine Location' : (l.locations?.join('; ') || '-');
+    return [l.name, l.phone, l.email, dateStr, locStr, l.interests?.join('; '), l.hours, l.extras?.join('; '), l.budget, l.remarks, l.rating, l.notes, l.emailSent ? 'Ja' : 'Nein', l.timestamp || ''].map(csvEsc).join(',');
   }).join('\n');
   return header + rows;
 }
