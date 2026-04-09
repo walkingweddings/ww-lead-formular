@@ -597,7 +597,7 @@
         </div>
       </div>
 
-      <div class="section-title">Location</div>
+      <div class="section-title">Location <span style="color: var(--error); font-family: 'PT Sans', sans-serif; font-size: 12px;">*</span></div>
 
       <div class="field">
         <label class="date-toggle">
@@ -608,6 +608,7 @@
         <div class="location-fields" id="locationFields">
           <label class="field-label">Wunschlocation</label>
           <input type="text" id="location1" placeholder="z.B. Schloss Schoenbrunn" autocomplete="off">
+          <div class="error-msg" id="locationError">Bitte Location eingeben oder "keine Location" ankreuzen</div>
 
           <div class="extra-location hidden" id="extraLocation2">
             <label class="field-label" style="margin-top: 8px;">Wunschlocation 2</label>
@@ -815,6 +816,11 @@
 
   document.getElementById('noLocationYet').addEventListener('change', function() {
     document.getElementById('locationFields').classList.toggle('hidden', this.checked);
+    document.getElementById('locationError').classList.remove('visible');
+  });
+
+  document.getElementById('location1').addEventListener('input', function() {
+    document.getElementById('locationError').classList.remove('visible');
   });
 
   document.getElementById('addLocationBtn').addEventListener('click', function() {
@@ -865,6 +871,15 @@
     if (!noDate && !d1) {
       document.getElementById('dateError').classList.add('visible');
       if (valid) document.getElementById('weddingDate1').scrollIntoView({ behavior: 'smooth' });
+      valid = false;
+    }
+
+    // Validate location: either a location must be entered OR "keine Location" checked
+    const noLoc = document.getElementById('noLocationYet').checked;
+    const loc1 = document.getElementById('location1').value.trim();
+    if (!noLoc && !loc1) {
+      document.getElementById('locationError').classList.add('visible');
+      if (valid) document.getElementById('location1').scrollIntoView({ behavior: 'smooth' });
       valid = false;
     }
 
