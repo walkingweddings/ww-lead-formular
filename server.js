@@ -588,20 +588,85 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'POST' && url.pathname === '/api/update-lead') {
     try {
       const data = await parseBody(req);
+      let matched = false;
       // Find last lead matching name+email and update rating/notes
       for (let i = leads.length - 1; i >= 0; i--) {
         if (leads[i].name === data.name && leads[i].email === data.email) {
           leads[i].rating = data.rating || 0;
           leads[i].notes = data.notes || '';
           saveLeads();
+          matched = true;
           break;
         }
       }
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ ok: true }));
+      res.end(JSON.stringify({ ok: true, matched }));
     } catch (err) {
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ ok: false }));
+    }
+    return;
+  }
+
+  // API: Bulk import full leads from a tablet's localStorage.
+  // Upserts by timestamp (most precise unique key), falling back to
+  // name+phone+email. New leads are inserted, existing ones are merged.
+  if (req.method === 'POST' && url.pathname === '/api/leads/import') {
+    try {
+      const body = await parseBody(req);
+      const incoming = Array.isArray(body) ? body : (Array.isArray(body && body.leads) ? body.leads : []);
+      let inserted = 0, updated = 0, unchanged = 0;
+      const mergeableFields = ['name','phone','email','weddingDates','locations','interests','hours','extras','budget','remarks','noDateYet','noLocationYet','rating','notes','emailSent'];
+
+      for (const lead of incoming) {
+        if (!lead || typeof lead !== 'object') continue;
+
+        let idx = -1;
+        if (lead.timestamp) {
+          idx = leads.findIndex(l => l && l.timestamp === lead.timestamp);
+        }
+        if (idx === -1 && (lead.name || lead.email || lead.phone)) {
+          idx = leads.findIndex(l => l
+            && (l.name || '') === (lead.name || '')
+            && (l.email || '') === (lead.email || '')
+            && (l.phone || '') === (lead.phone || ''));
+        }
+
+        if (idx === -1) {
+          const clone = Object.assign({}, lead);
+          if (clone.timestamp == null) clone.timestamp = new Date().toISOString();
+          if (clone.emailSent === undefined) clone.emailSent = false;
+          leads.push(clone);
+          inserted++;
+        } else {
+          const existing = leads[idx];
+          let changed = false;
+          for (const k of mergeableFields) {
+            if (lead[k] === undefined) continue;
+            if (JSON.stringify(lead[k]) !== JSON.stringify(existing[k])) {
+              existing[k] = lead[k];
+              changed = true;
+            }
+          }
+          if (changed) updated++; else unchanged++;
+        }
+      }
+
+      saveLeads();
+      console.log(`Import: received=${incoming.length} inserted=${inserted} updated=${updated} unchanged=${unchanged} total=${leads.length}`);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        ok: true,
+        received: incoming.length,
+        inserted,
+        updated,
+        unchanged,
+        serverTotal: leads.length
+      }));
+    } catch (err) {
+      console.error('Import failed:', err);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, error: err.message }));
     }
     return;
   }

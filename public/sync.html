@@ -91,10 +91,10 @@
   </div>
 
   <div class="stats">
-    <div class="stat-card"><div class="num" id="statTotal">0</div><div class="label">Leads lokal</div></div>
+    <div class="stat-card"><div class="num" id="statLocal">0</div><div class="label">Lokal auf Tablet</div></div>
+    <div class="stat-card"><div class="num" id="statServer">–</div><div class="label">Aktuell am Server</div></div>
+    <div class="stat-card"><div class="num" id="statMissing">–</div><div class="label">Noch nicht synchron</div></div>
     <div class="stat-card"><div class="num" id="statWithNotes">0</div><div class="label">Mit Notizen / Rating</div></div>
-    <div class="stat-card"><div class="num" id="statSynced">0</div><div class="label">Synchronisiert</div></div>
-    <div class="stat-card"><div class="num" id="statFailed">0</div><div class="label">Fehler</div></div>
   </div>
 
   <div class="actions">
@@ -136,6 +136,13 @@
     return (l.rating && l.rating > 0) || (l.notes && l.notes.trim().length > 0);
   }
 
+  function leadKey(l) {
+    // Prefer timestamp (ISO ms) as the near-unique identity.
+    // Fallback to name|email|phone if no timestamp.
+    if (l && l.timestamp) return 'ts:' + l.timestamp;
+    return 'np:' + ((l && l.name) || '') + '|' + ((l && l.email) || '') + '|' + ((l && l.phone) || '');
+  }
+
   function stars(n) {
     n = n || 0;
     var s = '';
@@ -147,18 +154,44 @@
     return String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
 
-  // ─── Render ───────────────────────────────────
-  var rowEls = []; // index -> tr element
-  var localLeads = [];
+  // ─── State ────────────────────────────────────
+  var rowEls = [];      // index -> tr element
+  var localLeads = [];  // current localStorage content
+  var serverLeads = []; // last /api/leads snapshot
+  var serverKeys = new Set();
 
-  function render() {
+  // ─── Log ──────────────────────────────────────
+  var logEl = document.getElementById('log');
+  function logLine(msg) {
+    var now = new Date().toLocaleTimeString('de-AT');
+    logEl.textContent += '[' + now + '] ' + msg + '\n';
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  // ─── Render ───────────────────────────────────
+  async function render() {
     localLeads = getLocalLeads();
     var withTeam = localLeads.filter(hasTeamData);
-
-    document.getElementById('statTotal').textContent = localLeads.length;
+    document.getElementById('statLocal').textContent = localLeads.length;
     document.getElementById('statWithNotes').textContent = withTeam.length;
-    document.getElementById('statSynced').textContent = '0';
-    document.getElementById('statFailed').textContent = '0';
+
+    // Fetch server state
+    try {
+      var res = await fetch('/api/leads', { cache: 'no-store' });
+      serverLeads = await res.json();
+      if (!Array.isArray(serverLeads)) serverLeads = [];
+    } catch (e) {
+      serverLeads = [];
+      logLine('Konnte Server-Stand nicht laden: ' + e.message);
+    }
+    serverKeys = new Set(serverLeads.map(leadKey));
+    document.getElementById('statServer').textContent = serverLeads.length;
+
+    var missing = 0;
+    for (var i = 0; i < localLeads.length; i++) {
+      if (!serverKeys.has(leadKey(localLeads[i]))) missing++;
+    }
+    document.getElementById('statMissing').textContent = missing;
 
     var tableArea = document.getElementById('tableArea');
     rowEls = [];
@@ -170,15 +203,17 @@
     }
 
     var html = '<div class="table-wrap"><table><thead><tr>' +
-      '<th>#</th><th>Name</th><th>E-Mail</th><th>Rating</th><th>Notizen</th><th>Status</th>' +
+      '<th>#</th><th>Zeitpunkt</th><th>Name</th><th>E-Mail</th><th>Rating</th><th>Notizen</th><th>Status</th>' +
       '</tr></thead><tbody>';
-    for (var i = 0; i < localLeads.length; i++) {
-      var l = localLeads[i];
-      var isSkip = !hasTeamData(l);
-      var statusCls = isSkip ? 'skip' : 'pending';
-      var statusText = isSkip ? 'Übersprungen' : 'Ausstehend';
-      html += '<tr data-idx="' + i + '" class="' + (isSkip ? 'status-skip' : '') + '">' +
-        '<td>' + (i + 1) + '</td>' +
+    for (var j = 0; j < localLeads.length; j++) {
+      var l = localLeads[j];
+      var onServer = serverKeys.has(leadKey(l));
+      var statusCls = onServer ? 'skip' : 'pending';
+      var statusText = onServer ? 'Bereits auf Server' : 'Wird hochgeladen';
+      var tsStr = l.timestamp ? new Date(l.timestamp).toLocaleString('de-AT') : '–';
+      html += '<tr data-idx="' + j + '" class="' + (onServer ? 'status-skip' : '') + '">' +
+        '<td>' + (j + 1) + '</td>' +
+        '<td style="font-size:11px;color:#747c7d;">' + esc(tsStr) + '</td>' +
         '<td>' + esc(l.name || '-') + '</td>' +
         '<td>' + esc(l.email || '-') + '</td>' +
         '<td class="rating">' + stars(l.rating) + '</td>' +
@@ -189,19 +224,10 @@
     html += '</tbody></table></div>';
     tableArea.innerHTML = html;
 
-    // Collect row references
     var trs = tableArea.querySelectorAll('tbody tr');
-    for (var j = 0; j < trs.length; j++) rowEls[parseInt(trs[j].dataset.idx, 10)] = trs[j];
+    for (var k = 0; k < trs.length; k++) rowEls[parseInt(trs[k].dataset.idx, 10)] = trs[k];
 
-    document.getElementById('syncBtn').disabled = withTeam.length === 0;
-  }
-
-  // ─── Log ──────────────────────────────────────
-  var logEl = document.getElementById('log');
-  function logLine(msg) {
-    var now = new Date().toLocaleTimeString('de-AT');
-    logEl.textContent += '[' + now + '] ' + msg + '\n';
-    logEl.scrollTop = logEl.scrollHeight;
+    document.getElementById('syncBtn').disabled = localLeads.length === 0;
   }
 
   // ─── Sync ─────────────────────────────────────
@@ -214,52 +240,44 @@
     cell.textContent = text;
   }
 
-  async function syncOne(l) {
-    var res = await fetch('/api/update-lead', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: l.name || '',
-        email: l.email || '',
-        rating: l.rating || 0,
-        notes: l.notes || ''
-      })
-    });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    var data = await res.json();
-    if (!data.ok) throw new Error('Server: not ok');
-    return true;
-  }
-
   document.getElementById('syncBtn').addEventListener('click', async function() {
     var btn = this;
     btn.disabled = true;
     logEl.textContent = '';
-    logLine('Sync gestartet.');
+    logLine('Sync gestartet: ' + localLeads.length + ' Leads werden an den Server geschickt…');
 
-    var synced = 0, failed = 0;
-    for (var i = 0; i < localLeads.length; i++) {
-      var l = localLeads[i];
-      if (!hasTeamData(l)) {
-        logLine('#' + (i + 1) + ' ' + (l.name || '-') + ' - kein Rating/Notiz, übersprungen');
-        continue;
+    try {
+      var res = await fetch('/api/leads/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leads: localLeads })
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      var data = await res.json();
+      if (!data.ok) throw new Error(data.error || 'Server: not ok');
+
+      logLine('Server-Response: empfangen=' + data.received +
+              ', neu=' + data.inserted +
+              ', aktualisiert=' + data.updated +
+              ', unverändert=' + data.unchanged);
+      logLine('Server hat jetzt insgesamt ' + data.serverTotal + ' Leads gespeichert.');
+
+      // Re-fetch and re-render so row statuses reflect reality
+      await render();
+
+      // Mark all rows as OK for visual feedback
+      for (var i = 0; i < localLeads.length; i++) {
+        if (serverKeys.has(leadKey(localLeads[i]))) {
+          setRowStatus(i, 'ok', 'Auf Server');
+        }
       }
-      try {
-        await syncOne(l);
-        synced++;
-        setRowStatus(i, 'ok', 'Synchronisiert');
-        logLine('#' + (i + 1) + ' ' + (l.name || '-') + ' - OK');
-      } catch (err) {
-        failed++;
-        setRowStatus(i, 'fail', 'Fehler');
-        logLine('#' + (i + 1) + ' ' + (l.name || '-') + ' - FEHLER: ' + err.message);
-      }
-      document.getElementById('statSynced').textContent = synced;
-      document.getElementById('statFailed').textContent = failed;
+      logLine('Fertig.');
+    } catch (err) {
+      logLine('FEHLER: ' + err.message);
+      alert('Sync fehlgeschlagen: ' + err.message);
+    } finally {
+      btn.disabled = false;
     }
-
-    logLine('Fertig. ' + synced + ' synchronisiert, ' + failed + ' Fehler.');
-    btn.disabled = false;
   });
 
   document.getElementById('reloadBtn').addEventListener('click', function() {
