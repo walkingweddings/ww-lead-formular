@@ -237,6 +237,7 @@ function renderDashboard() {
   <div class="actions">
     <a class="btn" href="/api/leads/xlsx">Excel Export</a>
     <a class="btn" href="/api/leads/csv">CSV Export</a>
+    <a class="btn" href="/sync.html">Tablet Sync</a>
     <button class="btn" onclick="location.reload()">Aktualisieren</button>
   </div>
   <div class="table-wrap">

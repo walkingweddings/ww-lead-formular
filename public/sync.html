@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WW Lead Sync - HochzeitStil Messe</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #f5f0e8; color: #393e3f; min-height: 100vh; }
+  .header { background: #393e3f; color: #fff; padding: 20px 30px; }
+  .header h1 { font-family: Georgia, serif; font-weight: 400; letter-spacing: 4px; font-size: 20px; }
+  .header .sub { color: #cbd4d4; font-size: 11px; letter-spacing: 2px; display: block; margin-top: 4px; }
+
+  .container { padding: 20px 30px 40px; max-width: 1100px; margin: 0 auto; }
+
+  .login { max-width: 360px; margin: 80px auto; text-align: center; }
+  .login h2 { font-family: Georgia, serif; font-weight: 400; letter-spacing: 3px; margin-bottom: 8px; font-size: 18px; }
+  .login .sub { color: #747c7d; font-size: 11px; letter-spacing: 2px; display: block; margin-bottom: 24px; text-transform: uppercase; }
+  .login input { padding: 12px 20px; font-size: 20px; letter-spacing: 8px; text-align: center; border: 1px solid #d4c4a8; background: #fff; color: #393e3f; width: 200px; }
+  .login button { display: block; margin: 16px auto 0; padding: 12px 40px; background: #393e3f; color: #fff; border: none; cursor: pointer; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; }
+  .err { color: #c94040; font-size: 12px; margin-top: 12px; min-height: 18px; }
+
+  .stats { display: flex; gap: 20px; margin-bottom: 20px; }
+  .stat-card { background: #fff; border: 1px solid #d4c4a8; padding: 16px 24px; flex: 1; text-align: center; }
+  .stat-card .num { font-size: 32px; font-weight: 700; color: #393e3f; }
+  .stat-card .label { font-size: 11px; color: #747c7d; text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
+
+  .actions { margin-bottom: 16px; display: flex; gap: 10px; flex-wrap: wrap; }
+  .btn { padding: 12px 24px; background: #393e3f; color: #fff; border: none; cursor: pointer; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; text-decoration: none; display: inline-block; }
+  .btn:hover { background: #555; }
+  .btn:disabled { background: #999; cursor: not-allowed; }
+  .btn.primary { background: #d4c4a8; color: #393e3f; }
+  .btn.primary:hover { background: #c4b498; }
+  .btn.ghost { background: transparent; color: #393e3f; border: 1px solid #393e3f; }
+
+  .info { background: #fff; border-left: 4px solid #d4c4a8; padding: 16px 20px; margin-bottom: 20px; font-size: 13px; line-height: 1.5; }
+  .info strong { letter-spacing: 1px; text-transform: uppercase; font-size: 11px; display: block; margin-bottom: 6px; color: #747c7d; }
+
+  .table-wrap { background: #fff; border: 1px solid #e8e0d0; overflow-x: auto; margin-bottom: 20px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { background: #393e3f; color: #fff; padding: 10px 12px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; }
+  td { padding: 10px 12px; border-bottom: 1px solid #e8e0d0; vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  tr.status-ok td { background: #f0f7ed; }
+  tr.status-fail td { background: #fbefef; }
+  tr.status-skip td { background: #faf7f2; color: #747c7d; }
+  .rating { color: #d4a017; letter-spacing: 2px; }
+  .note-snip { max-width: 340px; white-space: pre-wrap; word-break: break-word; font-size: 12px; color: #393e3f; }
+  .status-cell { font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; }
+  .status-cell.ok { color: #4a7a3a; }
+  .status-cell.fail { color: #c94040; }
+  .status-cell.skip { color: #999; }
+  .status-cell.pending { color: #747c7d; }
+
+  .empty { text-align: center; padding: 60px; color: #747c7d; background: #fff; border: 1px solid #e8e0d0; }
+
+  .log { background: #1e2223; color: #cbd4d4; font-family: 'Menlo', 'Consolas', monospace; font-size: 12px; padding: 16px; margin-top: 16px; max-height: 220px; overflow-y: auto; white-space: pre-wrap; }
+  .log:empty { display: none; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>WALKING WEDDINGS</h1>
+  <span class="sub">LEAD SYNC &bull; HOCHZEITSTIL MESSE</span>
+</div>
+
+<!-- ═════════════════════════════════ -->
+<!--              LOGIN               -->
+<!-- ═════════════════════════════════ -->
+<div id="loginScreen" class="login">
+  <h2>LEAD SYNC</h2>
+  <span class="sub">Team PIN</span>
+  <form id="loginForm">
+    <input type="password" id="pinInput" placeholder="PIN" maxlength="4" inputmode="numeric" autofocus>
+    <button type="submit">Weiter</button>
+  </form>
+  <p class="err" id="loginErr"></p>
+</div>
+
+<!-- ═════════════════════════════════ -->
+<!--               APP                -->
+<!-- ═════════════════════════════════ -->
+<div id="appScreen" class="container" hidden>
+
+  <div class="info">
+    <strong>Was macht diese Seite?</strong>
+    Sie liest alle auf <em>diesem Tablet</em> lokal gespeicherten Leads und schickt deren interne Bewertung + Notizen an den Server nach.
+    Dadurch erscheinen die Notizen im Dashboard sowie in Excel- und CSV-Exports.
+    Starte den Sync <strong>einmal pro Tablet</strong>. Wiederholungen sind ungefährlich (idempotent).
+  </div>
+
+  <div class="stats">
+    <div class="stat-card"><div class="num" id="statTotal">0</div><div class="label">Leads lokal</div></div>
+    <div class="stat-card"><div class="num" id="statWithNotes">0</div><div class="label">Mit Notizen / Rating</div></div>
+    <div class="stat-card"><div class="num" id="statSynced">0</div><div class="label">Synchronisiert</div></div>
+    <div class="stat-card"><div class="num" id="statFailed">0</div><div class="label">Fehler</div></div>
+  </div>
+
+  <div class="actions">
+    <button class="btn primary" id="syncBtn">Jetzt synchronisieren</button>
+    <button class="btn ghost" id="reloadBtn">Neu laden</button>
+    <a class="btn ghost" href="/dashboard">Zum Dashboard</a>
+  </div>
+
+  <div id="tableArea"></div>
+  <div class="log" id="log"></div>
+</div>
+
+<script>
+  var PIN = '1234';
+  var STORAGE_KEY = 'ww_messe_leads_2026';
+
+  // ─── Login ────────────────────────────────────
+  var loginScreen = document.getElementById('loginScreen');
+  var appScreen = document.getElementById('appScreen');
+  document.getElementById('loginForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    var val = document.getElementById('pinInput').value.trim();
+    if (val === PIN) {
+      loginScreen.hidden = true;
+      appScreen.hidden = false;
+      render();
+    } else {
+      document.getElementById('loginErr').textContent = 'Falscher PIN';
+    }
+  });
+
+  // ─── Data ─────────────────────────────────────
+  function getLocalLeads() {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
+    catch (e) { return []; }
+  }
+
+  function hasTeamData(l) {
+    return (l.rating && l.rating > 0) || (l.notes && l.notes.trim().length > 0);
+  }
+
+  function stars(n) {
+    n = n || 0;
+    var s = '';
+    for (var i = 0; i < 5; i++) s += (i < n ? '\u2605' : '\u2606');
+    return s;
+  }
+
+  function esc(v) {
+    return String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  // ─── Render ───────────────────────────────────
+  var rowEls = []; // index -> tr element
+  var localLeads = [];
+
+  function render() {
+    localLeads = getLocalLeads();
+    var withTeam = localLeads.filter(hasTeamData);
+
+    document.getElementById('statTotal').textContent = localLeads.length;
+    document.getElementById('statWithNotes').textContent = withTeam.length;
+    document.getElementById('statSynced').textContent = '0';
+    document.getElementById('statFailed').textContent = '0';
+
+    var tableArea = document.getElementById('tableArea');
+    rowEls = [];
+
+    if (localLeads.length === 0) {
+      tableArea.innerHTML = '<div class="empty">Keine Leads im lokalen Speicher dieses Tablets gefunden.</div>';
+      document.getElementById('syncBtn').disabled = true;
+      return;
+    }
+
+    var html = '<div class="table-wrap"><table><thead><tr>' +
+      '<th>#</th><th>Name</th><th>E-Mail</th><th>Rating</th><th>Notizen</th><th>Status</th>' +
+      '</tr></thead><tbody>';
+    for (var i = 0; i < localLeads.length; i++) {
+      var l = localLeads[i];
+      var isSkip = !hasTeamData(l);
+      var statusCls = isSkip ? 'skip' : 'pending';
+      var statusText = isSkip ? 'Übersprungen' : 'Ausstehend';
+      html += '<tr data-idx="' + i + '" class="' + (isSkip ? 'status-skip' : '') + '">' +
+        '<td>' + (i + 1) + '</td>' +
+        '<td>' + esc(l.name || '-') + '</td>' +
+        '<td>' + esc(l.email || '-') + '</td>' +
+        '<td class="rating">' + stars(l.rating) + '</td>' +
+        '<td class="note-snip">' + esc(l.notes || '') + '</td>' +
+        '<td class="status-cell ' + statusCls + '">' + statusText + '</td>' +
+      '</tr>';
+    }
+    html += '</tbody></table></div>';
+    tableArea.innerHTML = html;
+
+    // Collect row references
+    var trs = tableArea.querySelectorAll('tbody tr');
+    for (var j = 0; j < trs.length; j++) rowEls[parseInt(trs[j].dataset.idx, 10)] = trs[j];
+
+    document.getElementById('syncBtn').disabled = withTeam.length === 0;
+  }
+
+  // ─── Log ──────────────────────────────────────
+  var logEl = document.getElementById('log');
+  function logLine(msg) {
+    var now = new Date().toLocaleTimeString('de-AT');
+    logEl.textContent += '[' + now + '] ' + msg + '\n';
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  // ─── Sync ─────────────────────────────────────
+  function setRowStatus(idx, kind, text) {
+    var tr = rowEls[idx];
+    if (!tr) return;
+    tr.className = 'status-' + kind;
+    var cell = tr.querySelector('.status-cell');
+    cell.className = 'status-cell ' + kind;
+    cell.textContent = text;
+  }
+
+  async function syncOne(l) {
+    var res = await fetch('/api/update-lead', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: l.name || '',
+        email: l.email || '',
+        rating: l.rating || 0,
+        notes: l.notes || ''
+      })
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    var data = await res.json();
+    if (!data.ok) throw new Error('Server: not ok');
+    return true;
+  }
+
+  document.getElementById('syncBtn').addEventListener('click', async function() {
+    var btn = this;
+    btn.disabled = true;
+    logEl.textContent = '';
+    logLine('Sync gestartet.');
+
+    var synced = 0, failed = 0;
+    for (var i = 0; i < localLeads.length; i++) {
+      var l = localLeads[i];
+      if (!hasTeamData(l)) {
+        logLine('#' + (i + 1) + ' ' + (l.name || '-') + ' - kein Rating/Notiz, übersprungen');
+        continue;
+      }
+      try {
+        await syncOne(l);
+        synced++;
+        setRowStatus(i, 'ok', 'Synchronisiert');
+        logLine('#' + (i + 1) + ' ' + (l.name || '-') + ' - OK');
+      } catch (err) {
+        failed++;
+        setRowStatus(i, 'fail', 'Fehler');
+        logLine('#' + (i + 1) + ' ' + (l.name || '-') + ' - FEHLER: ' + err.message);
+      }
+      document.getElementById('statSynced').textContent = synced;
+      document.getElementById('statFailed').textContent = failed;
+    }
+
+    logLine('Fertig. ' + synced + ' synchronisiert, ' + failed + ' Fehler.');
+    btn.disabled = false;
+  });
+
+  document.getElementById('reloadBtn').addEventListener('click', function() {
+    logEl.textContent = '';
+    render();
+  });
+</script>
+</body>
+</html>
