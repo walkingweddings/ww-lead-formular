@@ -97,10 +97,16 @@
     <div class="stat-card"><div class="num" id="statWithNotes">0</div><div class="label">Mit Notizen / Rating</div></div>
   </div>
 
+  <div class="info" style="border-left-color:#c94040;background:#fbf3f3;">
+    <strong style="color:#c94040;">Notfall-Backup zuerst!</strong>
+    Bevor du irgendetwas anderes klickst: Drücke <strong>„Backup herunterladen"</strong> um alle Leads dieses Tablets als Datei in den Downloads-Ordner zu speichern. Du bekommst so eine harte Kopie, die unabhängig vom Server ist.
+  </div>
+
   <div class="actions">
+    <button class="btn" id="backupBtn" style="background:#c94040;">Backup herunterladen</button>
     <button class="btn primary" id="syncBtn">Jetzt synchronisieren</button>
     <button class="btn ghost" id="reloadBtn">Neu laden</button>
-    <a class="btn ghost" href="/dashboard">Zum Dashboard</a>
+    <a class="btn ghost" href="/dashboard?pin=1234" target="_blank" rel="noopener">Zum Dashboard</a>
   </div>
 
   <div id="tableArea"></div>
@@ -283,6 +289,35 @@
   document.getElementById('reloadBtn').addEventListener('click', function() {
     logEl.textContent = '';
     render();
+  });
+
+  // ─── Notfall-Backup ───────────────────────────
+  // Lädt den RAW-localStorage-Inhalt als JSON-Datei herunter.
+  // Funktioniert offline, braucht keinen Server-Call, löscht nichts.
+  document.getElementById('backupBtn').addEventListener('click', function() {
+    var raw = localStorage.getItem(STORAGE_KEY) || '[]';
+    var parsed;
+    try { parsed = JSON.parse(raw); } catch (e) { parsed = []; }
+    var payload = {
+      exportedAt: new Date().toISOString(),
+      storageKey: STORAGE_KEY,
+      userAgent: navigator.userAgent,
+      count: parsed.length,
+      leads: parsed
+    };
+    var pretty = JSON.stringify(payload, null, 2);
+    var blob = new Blob([pretty], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    var stamp = new Date().toISOString().replace(/[:.]/g, '-');
+    a.href = url;
+    a.download = 'ww-leads-backup-' + stamp + '.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
+    logLine('Backup heruntergeladen: ' + parsed.length + ' Leads (' + a.download + ')');
+    alert('Backup mit ' + parsed.length + ' Leads heruntergeladen.\n\nDatei: ' + a.download + '\n\nSpeichere die Datei jetzt sicher ab (z.B. per Mail an dich selbst).');
   });
 </script>
 </body>
