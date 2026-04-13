@@ -1066,6 +1066,18 @@
     leads.push(currentLead);
     saveLeads(leads);
 
+    // Sync internal rating/notes to server so they show up in the dashboard + exports
+    fetch('/api/update-lead', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: currentLead.name,
+        email: currentLead.email,
+        rating: currentLead.rating,
+        notes: currentLead.notes
+      })
+    }).catch(function(err) { console.error('update-lead sync failed:', err); });
+
     document.getElementById('successName').textContent = currentLead.name || currentLead.phone;
     showScreen('screen-success');
 
