@@ -235,6 +235,7 @@ function renderDashboard() {
     <div class="stat-card"><div class="num">${hot}</div><div class="label">Hot Leads (4-5&#9733;)</div></div>
   </div>
   <div class="actions">
+    <a class="btn" href="/api/leads/xlsx">Excel Export</a>
     <a class="btn" href="/api/leads/csv">CSV Export</a>
     <button class="btn" onclick="location.reload()">Aktualisieren</button>
   </div>
@@ -264,6 +265,189 @@ function generateCSV() {
     return [l.name, l.phone, l.email, dateStr, locStr, l.interests?.join('; '), l.hours, l.extras?.join('; '), l.budget, l.remarks, l.rating, l.notes, l.emailSent ? 'Ja' : 'Nein', l.timestamp || ''].map(csvEsc).join(',');
   }).join('\n');
   return header + rows;
+}
+
+// --- Minimal zero-dep XLSX writer ---
+// XLSX is a ZIP of XML parts. We build a STORED (uncompressed) ZIP by hand,
+// which lets us avoid adding any npm dependencies.
+
+const CRC32_TABLE = (() => {
+  const t = new Uint32Array(256);
+  for (let i = 0; i < 256; i++) {
+    let c = i;
+    for (let k = 0; k < 8; k++) c = (c & 1) ? (0xedb88320 ^ (c >>> 1)) : (c >>> 1);
+    t[i] = c;
+  }
+  return t;
+})();
+
+function crc32(buf) {
+  let c = 0xffffffff;
+  for (let i = 0; i < buf.length; i++) c = CRC32_TABLE[(c ^ buf[i]) & 0xff] ^ (c >>> 8);
+  return (c ^ 0xffffffff) >>> 0;
+}
+
+function zipStored(files) {
+  const localParts = [];
+  const centralParts = [];
+  let offset = 0;
+  for (const f of files) {
+    const nameBuf = Buffer.from(f.name, 'utf8');
+    const dataBuf = Buffer.isBuffer(f.data) ? f.data : Buffer.from(f.data, 'utf8');
+    const crc = crc32(dataBuf);
+    const size = dataBuf.length;
+
+    const local = Buffer.alloc(30);
+    local.writeUInt32LE(0x04034b50, 0);
+    local.writeUInt16LE(20, 4);
+    local.writeUInt16LE(0, 6);
+    local.writeUInt16LE(0, 8);
+    local.writeUInt16LE(0, 10);
+    local.writeUInt16LE(0, 12);
+    local.writeUInt32LE(crc, 14);
+    local.writeUInt32LE(size, 18);
+    local.writeUInt32LE(size, 22);
+    local.writeUInt16LE(nameBuf.length, 26);
+    local.writeUInt16LE(0, 28);
+    localParts.push(local, nameBuf, dataBuf);
+
+    const central = Buffer.alloc(46);
+    central.writeUInt32LE(0x02014b50, 0);
+    central.writeUInt16LE(20, 4);
+    central.writeUInt16LE(20, 6);
+    central.writeUInt16LE(0, 8);
+    central.writeUInt16LE(0, 10);
+    central.writeUInt16LE(0, 12);
+    central.writeUInt16LE(0, 14);
+    central.writeUInt32LE(crc, 16);
+    central.writeUInt32LE(size, 20);
+    central.writeUInt32LE(size, 24);
+    central.writeUInt16LE(nameBuf.length, 28);
+    central.writeUInt16LE(0, 30);
+    central.writeUInt16LE(0, 32);
+    central.writeUInt16LE(0, 34);
+    central.writeUInt16LE(0, 36);
+    central.writeUInt32LE(0, 38);
+    central.writeUInt32LE(offset, 42);
+    centralParts.push(central, nameBuf);
+
+    offset += local.length + nameBuf.length + dataBuf.length;
+  }
+  const cdStart = offset;
+  const cdSize = centralParts.reduce((s, p) => s + p.length, 0);
+
+  const eocd = Buffer.alloc(22);
+  eocd.writeUInt32LE(0x06054b50, 0);
+  eocd.writeUInt16LE(0, 4);
+  eocd.writeUInt16LE(0, 6);
+  eocd.writeUInt16LE(files.length, 8);
+  eocd.writeUInt16LE(files.length, 10);
+  eocd.writeUInt32LE(cdSize, 12);
+  eocd.writeUInt32LE(cdStart, 16);
+  eocd.writeUInt16LE(0, 20);
+
+  return Buffer.concat([...localParts, ...centralParts, eocd]);
+}
+
+function xmlEsc(v) {
+  return String(v == null ? '' : v)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;')
+    // strip control chars that are illegal in XML 1.0
+    .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, '');
+}
+
+function colLetter(n) {
+  // 1 -> A, 26 -> Z, 27 -> AA
+  let s = '';
+  while (n > 0) {
+    const m = (n - 1) % 26;
+    s = String.fromCharCode(65 + m) + s;
+    n = Math.floor((n - 1) / 26);
+  }
+  return s;
+}
+
+function sheetRow(rowIdx, cells) {
+  const parts = cells.map((val, i) => {
+    const ref = colLetter(i + 1) + rowIdx;
+    return `<c r="${ref}" t="inlineStr"><is><t xml:space="preserve">${xmlEsc(val)}</t></is></c>`;
+  }).join('');
+  return `<row r="${rowIdx}">${parts}</row>`;
+}
+
+function generateXLSX() {
+  const headers = ['Name','Telefon','Email','Hochzeitsdatum','Location','Interesse','Stunden','Extras','Budget','Anmerkungen','Bewertung','Notizen','Email gesendet','Zeitpunkt'];
+  const dataRows = leads.map(l => {
+    const dateStr = l.noDateYet ? 'Kein Datum' : (l.weddingDates?.join('; ') || '');
+    const locStr = l.noLocationYet ? 'Keine Location' : (l.locations?.join('; ') || '');
+    return [
+      l.name || '',
+      l.phone || '',
+      l.email || '',
+      dateStr,
+      locStr,
+      l.interests?.join('; ') || '',
+      l.hours || '',
+      l.extras?.join('; ') || '',
+      l.budget || '',
+      l.remarks || '',
+      l.rating != null ? String(l.rating) : '',
+      l.notes || '',
+      l.emailSent ? 'Ja' : 'Nein',
+      l.timestamp ? new Date(l.timestamp).toLocaleString('de-AT') : ''
+    ];
+  });
+
+  const allRows = [headers, ...dataRows];
+  const sheetRowsXml = allRows.map((cells, i) => sheetRow(i + 1, cells)).join('');
+  const lastCol = colLetter(headers.length);
+  const dimension = `A1:${lastCol}${allRows.length}`;
+
+  const sheetXml =
+    `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` +
+    `<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">` +
+    `<dimension ref="${dimension}"/>` +
+    `<sheetData>${sheetRowsXml}</sheetData>` +
+    `</worksheet>`;
+
+  const workbookXml =
+    `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` +
+    `<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">` +
+    `<sheets><sheet name="Leads" sheetId="1" r:id="rId1"/></sheets>` +
+    `</workbook>`;
+
+  const workbookRels =
+    `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` +
+    `<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">` +
+    `<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>` +
+    `</Relationships>`;
+
+  const rootRels =
+    `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` +
+    `<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">` +
+    `<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>` +
+    `</Relationships>`;
+
+  const contentTypes =
+    `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` +
+    `<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">` +
+    `<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>` +
+    `<Default Extension="xml" ContentType="application/xml"/>` +
+    `<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>` +
+    `<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>` +
+    `</Types>`;
+
+  return zipStored([
+    { name: '[Content_Types].xml', data: contentTypes },
+    { name: '_rels/.rels', data: rootRels },
+    { name: 'xl/workbook.xml', data: workbookXml },
+    { name: 'xl/_rels/workbook.xml.rels', data: workbookRels },
+    { name: 'xl/worksheets/sheet1.xml', data: sheetXml }
+  ]);
 }
 
 const server = http.createServer(async (req, res) => {
@@ -323,6 +507,24 @@ const server = http.createServer(async (req, res) => {
       'Content-Disposition': 'attachment; filename="hochzeitstil_leads.csv"'
     });
     res.end('\ufeff' + generateCSV()); // BOM for Excel
+    return;
+  }
+
+  // XLSX Export (echte Excel-Datei)
+  if (req.method === 'GET' && url.pathname === '/api/leads/xlsx') {
+    try {
+      const buf = generateXLSX();
+      res.writeHead(200, {
+        'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'Content-Disposition': 'attachment; filename="hochzeitstil_leads.xlsx"',
+        'Content-Length': buf.length
+      });
+      res.end(buf);
+    } catch (err) {
+      console.error('XLSX export failed:', err);
+      res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
+      res.end('XLSX export failed: ' + err.message);
+    }
     return;
   }
 
