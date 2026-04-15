@@ -609,27 +609,43 @@ const server = http.createServer(async (req, res) => {
   }
 
   // API: Bulk import full leads from a tablet's localStorage.
-  // Upserts by timestamp (most precise unique key), falling back to
-  // name+phone+email. New leads are inserted, existing ones are merged.
+  // Match ONLY by timestamp (millisecond-precise ISO string, effectively
+  // unique per lead). If a timestamp match is found we merge field-wise,
+  // otherwise we insert a new lead. We deliberately do NOT fall back to
+  // matching on name+phone+email: that collapses two legitimately distinct
+  // entries when the same couple was captured on both tablets.
+  //
+  // Before any write we snapshot leads.json to a timestamped backup file
+  // on disk so an in-flight import cannot destructively lose data within
+  // the same deploy.
   if (req.method === 'POST' && url.pathname === '/api/leads/import') {
     try {
       const body = await parseBody(req);
       const incoming = Array.isArray(body) ? body : (Array.isArray(body && body.leads) ? body.leads : []);
-      let inserted = 0, updated = 0, unchanged = 0;
+
+      // Snapshot current state before touching anything
+      try {
+        if (fs.existsSync(LEADS_FILE)) {
+          const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+          const backupPath = path.join(__dirname, `leads.backup-${stamp}.json`);
+          fs.copyFileSync(LEADS_FILE, backupPath);
+          console.log(`Pre-import backup written: ${backupPath}`);
+        }
+      } catch (backupErr) {
+        console.error('Pre-import backup failed (continuing):', backupErr.message);
+      }
+
+      let inserted = 0, updated = 0, unchanged = 0, skipped = 0;
       const mergeableFields = ['name','phone','email','weddingDates','locations','interests','hours','extras','budget','remarks','noDateYet','noLocationYet','rating','notes','emailSent'];
 
       for (const lead of incoming) {
-        if (!lead || typeof lead !== 'object') continue;
+        if (!lead || typeof lead !== 'object') { skipped++; continue; }
 
+        // Timestamp is required for matching. If incoming lead has no
+        // timestamp we treat it as a brand-new record and synthesize one.
         let idx = -1;
         if (lead.timestamp) {
           idx = leads.findIndex(l => l && l.timestamp === lead.timestamp);
-        }
-        if (idx === -1 && (lead.name || lead.email || lead.phone)) {
-          idx = leads.findIndex(l => l
-            && (l.name || '') === (lead.name || '')
-            && (l.email || '') === (lead.email || '')
-            && (l.phone || '') === (lead.phone || ''));
         }
 
         if (idx === -1) {
@@ -639,12 +655,20 @@ const server = http.createServer(async (req, res) => {
           leads.push(clone);
           inserted++;
         } else {
+          // Same-timestamp match: merge field-wise, prefer incoming values
+          // where they are set, but never erase data the server already has
+          // with an empty/undefined incoming value.
           const existing = leads[idx];
           let changed = false;
           for (const k of mergeableFields) {
-            if (lead[k] === undefined) continue;
-            if (JSON.stringify(lead[k]) !== JSON.stringify(existing[k])) {
-              existing[k] = lead[k];
+            const incomingVal = lead[k];
+            if (incomingVal === undefined || incomingVal === null) continue;
+            // Don't let empty-string or empty-array incoming values wipe
+            // richer server-side data
+            if (typeof incomingVal === 'string' && incomingVal === '' && existing[k]) continue;
+            if (Array.isArray(incomingVal) && incomingVal.length === 0 && Array.isArray(existing[k]) && existing[k].length > 0) continue;
+            if (JSON.stringify(incomingVal) !== JSON.stringify(existing[k])) {
+              existing[k] = incomingVal;
               changed = true;
             }
           }
@@ -653,7 +677,7 @@ const server = http.createServer(async (req, res) => {
       }
 
       saveLeads();
-      console.log(`Import: received=${incoming.length} inserted=${inserted} updated=${updated} unchanged=${unchanged} total=${leads.length}`);
+      console.log(`Import: received=${incoming.length} inserted=${inserted} updated=${updated} unchanged=${unchanged} skipped=${skipped} total=${leads.length}`);
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({
         ok: true,
@@ -661,6 +685,7 @@ const server = http.createServer(async (req, res) => {
         inserted,
         updated,
         unchanged,
+        skipped,
         serverTotal: leads.length
       }));
     } catch (err) {
